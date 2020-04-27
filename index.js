@@ -4,7 +4,7 @@ const mysql = require('mysql')
 
 const SELECT_PRODUCTS = "SELECT * FROM product";
 const SELECT_SECTIONS = "SELECT * FROM lidl_section";
-const SELECT_CART = "SELECT * FROM cart";
+const SELECT_CART = "SELECT cart.uid, cart.unit, cart.quantity, cart.productId, lidl_section.id AS sectionId, lidl_section.name AS sectionName, product.name AS productName FROM cart LEFT JOIN (lidl_section, product) ON cart.productId = product.id AND product.section = lidl_section.id;";
 
 const app = express()
 const connection = mysql.createConnection({
