@@ -55,6 +55,29 @@ app.get('/cart', (req, res) => {
     })
 })
 
+app.get('/supported-stores', (req, res) => {
+    connection.query('SELECT * FROM supportedMarkets;', (err, results) => {
+        if(err){
+            return res.send(err)
+        }else{
+            return results.map(result => {
+                connection.query(`SELECT lidlSredzka.id, lidlSredzka.sectionId,lidl_section.name AS sectionName, 
+                lidlSredzka.sectionOrder FROM ${result.tableReference} LEFT JOIN lidl_section ON 
+                lidlSredzka.sectionId = lidl_section.id;`, (err, results) => {
+                    if (err){
+                        return res.send(err);
+                    }else{
+                        return res.json([{
+                            ...result,
+                            order: results
+                        }])
+                    }
+                })
+            })
+        }
+    })
+})
+
 app.get('/products/add', (req,res) => {
     const {name, default_unit, section} = req.query;
     const INSERT_PRODUCT = `INSERT INTO product(name, default_unit, section) 
