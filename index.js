@@ -120,6 +120,23 @@ app.all('/supported-stores/updateOrder', (req,res) => {
     connection.commit()
 })
 
+app.all('/supported-stores/insertOrder', (req,res) => {
+    const store = req.body.store
+    const section = req.body.section
+    let query = `INSERT INTO ${store.tableReference}(sectionId, sectionOrder) VALUES(${section.id}, ${section.sectionOrder})`
+    connection.query(query, (err, results) => {
+        if (err){
+            return res.send(err)
+        }else{
+            return res.json({
+                order: [store.order.push({id: results.insertId, sectionId: section.id, sectionName: section.name, sectionOrder:section.sectionOrder})],
+                ...store
+            });
+        }
+    })
+    connection.commit()
+})
+
 app.get('/products/add', (req,res) => {
     const {name, default_unit, section} = req.query;
     const INSERT_PRODUCT = `INSERT INTO product(name, default_unit, section) 
