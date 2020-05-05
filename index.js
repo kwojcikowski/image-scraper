@@ -86,12 +86,11 @@ app.get('/supported-stores', (req, res) => {
 })
 
 app.all('/supported-stores/updateOrder', (req,res) => {
-    const {store} = (req.query);
-    const orderJson = req.body;
-    let baseString = `INSERT INTO ${store}(id, sectionId, sectionOrder) VALUES `
+    const store = req.body;
+    let baseString = `INSERT INTO ${store.tableReference}(id, sectionId, sectionOrder) VALUES `
     let endString = ` ON DUPLICATE KEY UPDATE sectionOrder=VALUES(sectionOrder);`
     let first = true
-    for(let entry of orderJson){
+    for(let entry of store.order){
         if(first){
             first = !first
         }else{
@@ -101,20 +100,9 @@ app.all('/supported-stores/updateOrder', (req,res) => {
     }
     connection.query(baseString + endString, (err, results) => {
         if (err){
-            console.log(err)
             return res.send(err)
         }else{
-            // connection.query(`SELECT * FROM ${store};`, (err, results) => {
-            //     if (err){
-            //         console.log(err)
-            //         return res.send(err)
-            //     }else{
-            //         console.log(results)
-            //         return res.json(req.query);
-            //     }
-            // })
-            console.log(results)
-            return res.json(req.query);
+            return res.json(store);
         }
     })
     connection.commit()
@@ -135,6 +123,51 @@ app.all('/supported-stores/insertOrder', (req,res) => {
         }
     })
     connection.commit()
+})
+
+app.all('/supported-stores/deleteSection', (req,res) => {
+    const {store, section} = req.body
+    const query = `DELETE FROM ${store.tableReference} WHERE id=${section.id}`;
+    connection.query(query, (err, results) => {
+        if(err){
+            return res.send(err)
+        }else{
+            connection.query(`SELECT EXISTS (SELECT 1 FROM ${store.tableReference});`, (err, results) => {
+                if(err){
+                    return res.send(err)
+                }else{
+                    const elementsExist = Object.values(results[0])[0] === 1
+                    if(elementsExist){
+                        const newOrder = store.order.filter(entry => entry.id !== section.id).map((entry, index) => ({...entry, sectionOrder: index}))
+                        let updateOrderQuery = `INSERT INTO ${store.tableReference} (id, sectionId, sectionOrder) VALUES `
+                        let first = true
+                        for(let entry of newOrder){
+                            if(first){
+                                first = false
+                            }else{
+                                updateOrderQuery += ','
+                            }
+                            updateOrderQuery += `(${entry.id}, ${entry.sectionId}, ${entry.sectionOrder})`
+                        }
+                        updateOrderQuery += 'ON DUPLICATE KEY UPDATE sectionOrder=VALUES(sectionOrder);'
+                        connection.query(updateOrderQuery, (err, results) => {
+                            if(err){
+                                return res.send(err)
+                            }else{
+                                return res.json({
+                                    ...store,
+                                    order: newOrder
+                                })
+                            }
+                        })
+                    }else{
+                        return res.json({...store,
+                            order: []})
+                    }
+                }
+            })
+        }
+    })
 })
 
 app.get('/products/add', (req,res) => {
@@ -159,16 +192,13 @@ app.get('/cart/add', (req,res) => {
     const INSERT_PRODUCT = `INSERT INTO cart(productId, unit, quantity) VALUES (${productId}, '${unit}', ${quantity});`
     connection.query(INSERT_PRODUCT, (err, results) => {
         if (err){
-            console.log(err)
             return res.send(err)
         }else{
             const SELECT_PRODUCT_AS_CART_PRODUCT = `SELECT cart.uid, cart.unit, cart.quantity, cart.productId, lidl_section.id AS sectionId, lidl_section.name AS sectionName, product.name AS productName FROM cart, lidl_section, product WHERE cart.productId = product.id AND product.section = lidl_section.id AND cart.productId = ${productId};`
             return connection.query(SELECT_PRODUCT_AS_CART_PRODUCT, (err, results) => {
                 if (err){
-                    console.log(err)
                     return res.send(err)
                 }else{
-                    console.log(results)
                     return res.json(results)
                 }});
         }
@@ -176,15 +206,15 @@ app.get('/cart/add', (req,res) => {
     connection.commit();
 })
 
-app.get('/cart/updateProduct', (req,res) => {
-    const {uid, productId, unit, quantity} = req.query;
+app.all('/cart/updateProduct', (req,res) => {
+    const {uid, productId, unit, quantity} = req.body;
     const UPDATE_PRODUCT = `UPDATE cart SET quantity=${quantity}, unit='${unit}'
     WHERE uid=${uid};`
     connection.query(UPDATE_PRODUCT, (err, results) => {
         if (err){
             return res.send(err)
         }else{
-            return res.json(req.query);
+            return res.json(req.body);
         }
     })
     connection.commit()
