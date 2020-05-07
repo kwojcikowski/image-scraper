@@ -170,25 +170,35 @@ app.all('/supported-stores/deleteSection', (req,res) => {
     })
 })
 
-app.get('/products/add', (req,res) => {
-    const {name, default_unit, section} = req.query;
+app.all('/products/add', (req,res) => {
+    const {name, default_unit, section} = req.body;
     const INSERT_PRODUCT = `INSERT INTO product(name, default_unit, section) 
-    VALUES ('${name.replace('_', ' ')}', '${default_unit}', ${section});
-    SELECT lidlSredzka.id, lidlSredzka.sectionId,lidl_section.name AS sectionName, 
-                lidlSredzka.sectionOrder FROM ${result.tableReference} LEFT JOIN lidl_section ON 
-                lidlSredzka.sectionId = lidl_section.id;`
+    VALUES ('${name.replace('_', ' ')}', '${default_unit}', ${section});`
     connection.query(INSERT_PRODUCT, (err, results) => {
         if (err){
             return res.send(err)
         }else{
-            return res.json({id: results.insertId, ...req.query});
+            return res.json({id: results.insertId, ...req.body});
         }
     })
     connection.commit()
 })
 
-app.get('/cart/add', (req,res) => {
-    const {productId, unit, quantity} = req.query;
+app.all('/products/delete', (req, res) => {
+    const {id} = req.body;
+    const query = `DELETE FROM product WHERE id=${id}`
+    connection.query(query, (err, results) => {
+        if (err){
+            return res.send(err)
+        }else{
+            return res.json(req.body);
+        }
+    })
+    connection.commit()
+})
+
+app.all('/cart/add', (req,res) => {
+    const {productId, unit, quantity} = req.body;
     const INSERT_PRODUCT = `INSERT INTO cart(productId, unit, quantity) VALUES (${productId}, '${unit}', ${quantity});`
     connection.query(INSERT_PRODUCT, (err, results) => {
         if (err){
@@ -220,25 +230,24 @@ app.all('/cart/updateProduct', (req,res) => {
     connection.commit()
 })
 
-app.get('/cart/deleteProduct', (req,res) => {
-    const {uid} = req.query;
+app.all('/cart/deleteProduct', (req,res) => {
+    const {uid} = req.body;
     connection.query(`DELETE FROM cart WHERE uid=${uid}`, (err, results) => {
         if (err){
             return res.send(err)
         }else{
-            return res.json(req.query);
+            return res.json(req.body);
         }
     })
     connection.commit()
 })
 
-app.get('/cart/update', (req,res) => {
-    const {cart} = (req.query);
-    const cartJson = JSON.parse(cart);
+app.all('/cart/update', (req,res) => {
+    const cart = (req.body);
     let baseString = "INSERT INTO cart(uid, productId, unit, quantity) VALUES "
     let endString = " ON DUPLICATE KEY UPDATE unit=VALUES(unit), quantity=VALUES(quantity)"
     let first = true
-    for(let entry of cartJson){
+    for(let entry of cart){
         if(first){
             first = !first
         }else{
@@ -250,7 +259,7 @@ app.get('/cart/update', (req,res) => {
         if (err){
             return res.send(err)
         }else{
-            return res.json(req.query);
+            return res.json(req.body);
         }
     })
     connection.commit()
