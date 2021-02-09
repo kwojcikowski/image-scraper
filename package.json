@@ -1,0 +1,24 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "g-i-s": "^2.1.6",
+    "google-images": "^2.1.0",
+    "image-scraper": "^0.2.1",
+    "images-scraper": "^5.0.7",
+    "mysql": "^2.18.1",
+    "nodemon": "^2.0.3",
+    "underscore": "^1.10.2"
+  }
+}
